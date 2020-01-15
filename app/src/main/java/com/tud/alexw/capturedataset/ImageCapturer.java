@@ -26,12 +26,12 @@ public class ImageCapturer {
     private StreamInfo mColorInfo;
     private AnnotatedImage mAnnotatedImage;
 
-    public ImageCapturer(Vision mVision, AnnotatedImage annotatedImage) {
+    public ImageCapturer(Vision mVision) {
         this.mVision = mVision;
-        this.mAnnotatedImage = annotatedImage;
+        this.mAnnotatedImage = new AnnotatedImage();
     }
 
-    public synchronized void captureImage(String roomLabel, int posX, int posY, int headDirection) {
+    public synchronized AnnotatedImage captureImage(String roomLabel, int posX, int posY, int headDirection) {
         Log.d(TAG, "captureImage() called");
 
         //start image stream listener
@@ -44,8 +44,12 @@ public class ImageCapturer {
                     mAnnotatedImage.setPosX(posX);
                     mAnnotatedImage.setPosY(posY);
                     mAnnotatedImage.setHeadDirection(headDirection);
+                    Log.i(TAG, "Image " + mAnnotatedImage + " captured: " + mAnnotatedImage.getFilePath());
+                    return mAnnotatedImage;
             }
         }
+        Log.wtf(TAG, "No camera active!"); // What a terrible failure
+        return null;
     }
 
     /**

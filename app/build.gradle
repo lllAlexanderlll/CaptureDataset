@@ -23,19 +23,19 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-//    packagingOptions {
-//        pickFirst 'lib/armeabi-v7a/libassmidi.so'
-//        pickFirst 'lib/x86/libassmidi.so'
-//        exclude 'META-INF/DEPENDENCIES'
-//        exclude 'META-INF/LICENSE'
-//        exclude 'META-INF/LICENSE.txt'
-//        exclude 'META-INF/license.txt'
-//        exclude 'META-INF/NOTICE'
-//        exclude 'META-INF/NOTICE.txt'
-//        exclude 'META-INF/notice.txt'
-//        exclude 'META-INF/ASL2.0'
-//        exclude 'META-INF/INDEX.LIST'
-//    }
+    packagingOptions {
+        pickFirst 'lib/armeabi-v7a/libassmidi.so'
+        pickFirst 'lib/x86/libassmidi.so'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/notice.txt'
+        exclude 'META-INF/ASL2.0'
+        exclude 'META-INF/INDEX.LIST'
+    }
 
 }
 
@@ -50,10 +50,10 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
-    implementation('org.openimaj:image-processing:1.3.1') {
-        exclude group: 'org.apache.xmlgraphics'
-        exclude group: 'xml-apis'
-    }
+//    implementation('org.openimaj:image-processing:1.3.1') {
+//        exclude group: 'org.apache.xmlgraphics'
+//        exclude group: 'xml-apis'
+//    } TODO: Does not work --> find other library...
     implementation 'com.segway.robot:visionsdk:0.6.547'
     implementation 'com.segway.robot:speech-sdk:0.5.327'
     implementation 'com.segway.robot:headsdk:0.6.746'
