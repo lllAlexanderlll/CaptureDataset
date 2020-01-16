@@ -1,6 +1,7 @@
 package com.tud.alexw.capturedataset;
 
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.util.Log;
@@ -74,10 +75,13 @@ public class AnnotatedImage {
         }
         else{
             this.filename = String.format("%d_%s_%d_%d_%d.png", timeTaken, roomLabel,posX, posY, headDirection);
+//            MediaStore.Images.Media.insertImage(getContentResolver(), yourBitmap, yourTitle , yourDescription);
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    AnnotatedImage.this.parentPath = context.getExternalFilesDir(null).getAbsolutePath();
+                    String folder = "";
+                    AnnotatedImage.this.parentPath = context.getExternalFilesDir(null).getAbsolutePath() + folder;
+
                     File f = new File(getFilePath());
                     Log.d(TAG, "saveImage(): " + f.getAbsolutePath());
                     try {
@@ -85,6 +89,7 @@ public class AnnotatedImage {
                         AnnotatedImage.this.bitmap.compress(Bitmap.CompressFormat.PNG, 100, fOut);
                         fOut.flush();
                         fOut.close();
+                        Log.d(TAG, "saved image: " + getFilePath());
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
