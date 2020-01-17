@@ -1,14 +1,21 @@
 package com.tud.alexw.capturedataset;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.regex.Pattern;
 
 import androidx.annotation.NonNull;
@@ -75,26 +82,38 @@ public class AnnotatedImage {
         }
         else{
             this.filename = String.format("%d_%s_%d_%d_%d.png", timeTaken, roomLabel,posX, posY, headDirection);
-//            MediaStore.Images.Media.insertImage(getContentResolver(), yourBitmap, yourTitle , yourDescription);
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    String folder = "";
-                    AnnotatedImage.this.parentPath = context.getExternalFilesDir(null).getAbsolutePath() + folder;
+            saveImageToExternalStorage(context, filename, bitmap);
+        }
+    }
 
-                    File f = new File(getFilePath());
-                    Log.d(TAG, "saveImage(): " + f.getAbsolutePath());
-                    try {
-                        FileOutputStream fOut = new FileOutputStream(f);
-                        AnnotatedImage.this.bitmap.compress(Bitmap.CompressFormat.PNG, 100, fOut);
-                        fOut.flush();
-                        fOut.close();
-                        Log.d(TAG, "saved image: " + getFilePath());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
+    public void saveImageToExternalStorage(Context context, String filename, Bitmap image) {
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)  + File.separator;
+        try {
+            File directory = new File(path);
+            if (!directory.exists()) {
+                directory.mkdirs();
+            }
+
+            File file = new File(directory, filename);
+            file.createNewFile();
+
+            FileOutputStream outputStream = new FileOutputStream(file);
+            image.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+
+            outputStream.flush();
+            outputStream.getFD().sync();
+            outputStream.close();
+
+            MediaScannerConnection.scanFile(context,
+                    new String[] { file.toString() }, null,
+                    new MediaScannerConnection.OnScanCompletedListener() {
+                        public void onScanCompleted(String path, Uri uri) {
+                            Log.i("ExternalStorage", "Scanned " + path + ":");
+                            Log.i("ExternalStorage", "-> uri=" + uri);
+                        }
+                    });
+        } catch (IOException exception) {
+            exception.printStackTrace();
         }
     }
 
