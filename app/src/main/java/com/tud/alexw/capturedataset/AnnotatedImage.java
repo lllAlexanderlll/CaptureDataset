@@ -1,21 +1,18 @@
 package com.tud.alexw.capturedataset;
 
-import android.content.ContentValues;
 import android.content.Context;
-import android.content.ContextWrapper;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.regex.Pattern;
 
 import androidx.annotation.NonNull;
@@ -28,7 +25,7 @@ public class AnnotatedImage {
     String filename;
     long timeTaken;
     Bitmap bitmap;
-    int posX, posY, headDirection;
+    int posX, posY, yaw, pitch;
     String roomLabel;
     String parentPath;
 
@@ -39,10 +36,11 @@ public class AnnotatedImage {
         this.timeTaken = -1;
         this.posX = -1;
         this.posY = -1;
-        this.headDirection = -1;
+        this.yaw = -1;
+        this.pitch = -1;
     }
 
-    public void load(String path){
+    public void decodeFilename(String path){
         int lastSlashIndex = path.lastIndexOf('/');
         this.parentPath = path.substring(0, lastSlashIndex - 1);
         this.filename = path.substring(lastSlashIndex, path.length() - 3);
@@ -53,13 +51,29 @@ public class AnnotatedImage {
             this.roomLabel = segs[1];
             this.posX = Integer.parseInt(segs[2]);
             this.posY = Integer.parseInt(segs[3]);
-            this.headDirection = Integer.parseInt(segs[4]);
+            this.yaw = Integer.parseInt(segs[4]);
         }
         else{
             String errorMsg = "Cannot construct AnnotatedImage. Filename couldn't be parsed: " + filename;
             Log.e(TAG, errorMsg);
             throw new IllegalStateException(errorMsg);
         }
+    }
+
+    public String encodeFilename(){
+        if(timeTaken == -1 || yaw == -1 || roomLabel == null || bitmap == null){
+            String errorMsg = "Cannot save AnnotatedImage. Not fully initialised: " + this;
+            Log.e(TAG, errorMsg);
+            throw new IllegalStateException(errorMsg);
+        }
+        else {
+            String timeFormatted = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Timestamp(timeTaken));
+            return String.format("%s_%s_%d_%d_%d_%d.png", timeFormatted, roomLabel, posX, posY, yaw, pitch);
+        }
+    }
+
+    public void load(String path){
+        decodeFilename(path);
 
         File f = new  File(path);
         if(f.exists()) {
@@ -73,21 +87,13 @@ public class AnnotatedImage {
 
     }
 
-    public void save(final Context context){
+    public void saveImageToExternalStorage(Context context) {
+        filename = encodeFilename();
 
-        if(timeTaken == -1 || posX == -1 || posY == -1 || headDirection == -1 || roomLabel == null || bitmap == null){
-            String errorMsg = "Cannot save AnnotatedImage. Not fully initialised: " + this;
-            Log.e(TAG, errorMsg);
-            throw new IllegalStateException(errorMsg);
-        }
-        else{
-            this.filename = String.format("%d_%s_%d_%d_%d.png", timeTaken, roomLabel,posX, posY, headDirection);
-            saveImageToExternalStorage(context, filename, bitmap);
-        }
-    }
-
-    public void saveImageToExternalStorage(Context context, String filename, Bitmap image) {
-        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)  + File.separator;
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                + File.separator
+                + "lab_reverse"
+                + File.separator;
         try {
             File directory = new File(path);
             if (!directory.exists()) {
@@ -98,7 +104,7 @@ public class AnnotatedImage {
             file.createNewFile();
 
             FileOutputStream outputStream = new FileOutputStream(file);
-            image.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
 
             outputStream.flush();
             outputStream.getFD().sync();
@@ -150,8 +156,8 @@ public class AnnotatedImage {
         return posY;
     }
 
-    public int getHeadDirection() {
-        return headDirection;
+    public int getYaw() {
+        return yaw;
     }
 
     public String getRoomLabel() {
@@ -174,17 +180,25 @@ public class AnnotatedImage {
         this.posY = posY;
     }
 
-    public void setHeadDirection(int headDirection) {
-        this.headDirection = headDirection;
+    public void setYaw(int headDirection) {
+        this.yaw = headDirection;
     }
 
     public void setRoomLabel(String roomLabel) {
-        this.roomLabel = roomLabel;
+        this.roomLabel = roomLabel.replace(' ', '_');
+    }
+
+    public int getPitch() {
+        return pitch;
+    }
+
+    public void setPitch(int pitch) {
+        this.pitch = pitch;
     }
 
     @NonNull
     @Override
     public String toString() {
-        return String.format("%s(%d, %d, %d) time: %d, bitmap? %s", roomLabel, posX, posY, headDirection, timeTaken, isBitmapSet() ? "Yes" : "No");
+        return String.format("%s(%d, %d, %d) time: %d, bitmap? %s", roomLabel, posX, posY, yaw, timeTaken, isBitmapSet() ? "Yes" : "No");
     }
 }
