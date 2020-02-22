@@ -105,14 +105,6 @@ public class MainActivity extends AppCompatActivity {
         textureView = (TextureView) findViewById(R.id.texture);
         assert textureView != null;
         textureView.setSurfaceTextureListener(textureListener);
-//        takePictureButton = (Button) findViewById(R.id.btn_takepicture);
-//        assert takePictureButton != null;
-//        takePictureButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                takePicture();
-//            }
-//        });
 
         final Button captureButton = (Button) findViewById(R.id.CaptureBtn);
         captureButton.setOnClickListener(new View.OnClickListener() {
@@ -130,48 +122,26 @@ public class MainActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-
                         mHead.resetOrientation();
-                        //Note range head: -141° - 142,5°
-
                         int[] pitchValues = {0, 45};
-                        for(int cPitch = 0; cPitch < pitchValues.length; cPitch++) {
+                        int[] yawValues = {0, 45};
+                        for(int i = 0; i < yawValues.length; i++) {
+                            Utils.moveHead(mHead, yawValues[i], pitchValues[i]);
+                            takePicture(roomLabel, X, Y, yawValues[i], pitchValues[i]);
+                            if (mAnnotatedImage.getBitmap() != null) {
+                                mAnnotatedImage.saveImageToExternalStorage(getApplicationContext());
+                                runOnUiThread(new Runnable() {
 
-                            int startDirection_deg = -140;
-                            float startDirection_rad = Utils.degreeToRad(startDirection_deg);
-                            mHead.setHeadJointYaw(startDirection_rad);
-                            mHead.setWorldPitch(Utils.degreeToRad(pitchValues[cPitch]));
-                            while (
-                                !Utils.isClose(Utils.radToDegree(mHead.getHeadJointYaw().getAngle()), startDirection_deg) &&
-                                !Utils.isClose(Utils.radToDegree(mHead.getWorldPitch().getAngle()), pitchValues[cPitch])
-                            ) {
-                                Log.v(TAG, String.format("waiting for startDirection_rad and pitchValue"));
-                            }
-                            int nViews = 8;
-                            for (int viewCount = 0; viewCount <= nViews; viewCount++) {
-                                Log.d(TAG, "" + viewCount);
-                                int setDirection_deg = viewCount * 35;
-                                float setDirection_rad = startDirection_rad + Utils.degreeToRad(setDirection_deg);
-                                mHead.setHeadJointYaw(setDirection_rad);
-                                while (!Utils.isClose(Utils.radToDegree(mHead.getHeadJointYaw().getAngle()), startDirection_deg + setDirection_deg)) {
-                                    Log.v(TAG, String.format("waiting for setDirection_rad"));
-                                }
-                                takePicture(roomLabel, X, Y, startDirection_deg + setDirection_deg, pitchValues[cPitch]);
-                                if (mAnnotatedImage.getBitmap() != null) {
-                                    mAnnotatedImage.saveImageToExternalStorage(getApplicationContext());
-                                    runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        ImageView imageView = (ImageView) findViewById(R.id.imageView);
+                                        TextView textViewFilename = (TextView) findViewById(R.id.textViewFilename);
+                                        imageView.setImageBitmap(mAnnotatedImage.getBitmap());
+                                        textViewFilename.setText(mAnnotatedImage.getFilename());
 
-                                        @Override
-                                        public void run() {
-                                            ImageView imageView = (ImageView) findViewById(R.id.imageView);
-                                            TextView textViewFilename = (TextView) findViewById(R.id.textViewFilename);
-                                            imageView.setImageBitmap(mAnnotatedImage.getBitmap());
-                                            textViewFilename.setText(mAnnotatedImage.getFilename());
+                                    }
+                                });
 
-                                        }
-                                    });
-
-                                }
                             }
                         }
                         mHead.resetOrientation();
@@ -255,23 +225,6 @@ public class MainActivity extends AppCompatActivity {
             // Orientation
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-//            try{
-//                Utils.isStorageStructureCreated(getApplicationContext());
-//            } catch (IOException e){
-//                e.printStackTrace();
-//            }
-//            File directory = new File(getExternalFilesDir(null) + File.separator + "test" + File.separator);
-//            if (!directory.exists()) {
-//                directory.mkdirs();
-//                Log.i(TAG, "Created " + directory.getAbsolutePath());
-//            }
-
-//            final File file = new File(directory, System.currentTimeMillis() + ".jpg");
-//            try{
-//                file.createNewFile();
-//            }catch (IOException e){
-//                e.printStackTrace();
-//            }
 
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
@@ -292,18 +245,6 @@ public class MainActivity extends AppCompatActivity {
                         if (image != null) {
                             image.close();
                         }
-                    }
-                }
-                private void save(byte[] bytes) throws IOException {
-                    OutputStream output = null;
-                    try {
-                        output = new FileOutputStream(file);
-                        output.write(bytes);
-                    } finally {
-                        if (null != output) {
-                            output.close();
-                        }
-                        Log.i(TAG, "Saved: " +  file.getAbsolutePath());
                     }
                 }
             };
