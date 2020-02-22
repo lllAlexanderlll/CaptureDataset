@@ -39,29 +39,34 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.segway.robot.sdk.base.bind.ServiceBinder;
+import com.segway.robot.sdk.base.log.Logger;
 import com.segway.robot.sdk.locomotion.head.Head;
-
+import com.segway.robot.sdk.vision.Vision;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-//    private Vision mVision;
+    private Vision mVision;
     private Head mHead;
-//    private boolean isVisionBound = false;
+    private boolean isVisionBound = false;
     private static final String TAG = "MainActivity";
-//    private ImageCapturer mImageCapturer;
+    private ImageCapturer mImageCapturer;
     private AnnotatedImage mAnnotatedImage;
 
-//    private Button takePictureButton;
+    private Button takePictureButton;
     private TextureView textureView;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     static {
@@ -89,12 +94,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // get Vision SDK instance
-//        mVision = Vision.getInstance();
+        mVision = Vision.getInstance();
         mHead = Head.getInstance();
 
-//        mVision.bindService(this, mBindStateListenerVision);
+        mVision.bindService(this, mBindStateListenerVision);
         mHead.bindService(getApplicationContext(), mServiceBindListenerHead);
-//        mImageCapturer =  new ImageCapturer(mVision);
+        mImageCapturer =  new ImageCapturer(mVision);
         mAnnotatedImage = new AnnotatedImage();
 
         textureView = (TextureView) findViewById(R.id.texture);
@@ -221,7 +226,6 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "cameraDevice is null");
             return;
         }
-
         mAnnotatedImage.setRoomLabel(roomLabel);
         mAnnotatedImage.setPosX(posX);
         mAnnotatedImage.setPosY(posY);
@@ -251,16 +255,23 @@ public class MainActivity extends AppCompatActivity {
             // Orientation
             int rotation = getWindowManager().getDefaultDisplay().getRotation();
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
-            try{
-                Utils.isStorageStructureCreated(getApplicationContext());
-            } catch (IOException e){
-                e.printStackTrace();
-            }
-            File directory = new File(getExternalFilesDir(null) + File.separator + "test" + File.separator);
-            if (!directory.exists()) {
-                directory.mkdirs();
-                Log.i(TAG, "Created " + directory.getAbsolutePath());
-            }
+//            try{
+//                Utils.isStorageStructureCreated(getApplicationContext());
+//            } catch (IOException e){
+//                e.printStackTrace();
+//            }
+//            File directory = new File(getExternalFilesDir(null) + File.separator + "test" + File.separator);
+//            if (!directory.exists()) {
+//                directory.mkdirs();
+//                Log.i(TAG, "Created " + directory.getAbsolutePath());
+//            }
+
+//            final File file = new File(directory, System.currentTimeMillis() + ".jpg");
+//            try{
+//                file.createNewFile();
+//            }catch (IOException e){
+//                e.printStackTrace();
+//            }
 
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
@@ -273,6 +284,7 @@ public class MainActivity extends AppCompatActivity {
                         byte[] bytes = new byte[buffer.capacity()];
                         buffer.get(bytes);
                         mAnnotatedImage.setBitmap(BitmapFactory.decodeByteArray(bytes,0,bytes.length));
+//                        save(bytes);
                         mAnnotatedImage.saveImageToExternalStorage(getApplicationContext());
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -280,6 +292,18 @@ public class MainActivity extends AppCompatActivity {
                         if (image != null) {
                             image.close();
                         }
+                    }
+                }
+                private void save(byte[] bytes) throws IOException {
+                    OutputStream output = null;
+                    try {
+                        output = new FileOutputStream(file);
+                        output.write(bytes);
+                    } finally {
+                        if (null != output) {
+                            output.close();
+                        }
+                        Log.i(TAG, "Saved: " +  file.getAbsolutePath());
                     }
                 }
             };
@@ -395,17 +419,17 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-//    protected void updatePreview() {
-//        if(null == cameraDevice) {
-//            Log.e(TAG, "updatePreview error, return");
-//        }
-//        captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-//        try {
-//            cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    protected void updatePreview() {
+        if(null == cameraDevice) {
+            Log.e(TAG, "updatePreview error, return");
+        }
+        captureRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+        try {
+            cameraCaptureSessions.setRepeatingRequest(captureRequestBuilder.build(), null, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
     private void closeCamera() {
         Log.i(TAG, "close camera called!");
         if (null != cameraDevice) {
@@ -424,7 +448,7 @@ public class MainActivity extends AppCompatActivity {
         if(!mHead.isBind()){
             mHead.bindService(getApplicationContext(), mServiceBindListenerHead);
         }
-//        mVision.bindService(this, mBindStateListenerVision);
+        mVision.bindService(this, mBindStateListenerVision);
         startBackgroundThread();
         if (textureView.isAvailable()) {
             openCamera();
@@ -441,8 +465,8 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
-//        mImageCapturer.stop();
-//        mVision.unbindService();
+        mImageCapturer.stop();
+        mVision.unbindService();
         mHead.unbindService();
         super.onStop();
         finish();
@@ -450,30 +474,30 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-//        mVision.unbindService();
+        mVision.unbindService();
         mHead.unbindService();
         closeCamera();
         super.onDestroy();
     }
 
-//    ServiceBinder.BindStateListener mBindStateListenerVision = new ServiceBinder.BindStateListener() {
-//        @Override
-//        public void onBind() {
-//            Log.d(TAG, "Vision onBind() called");
-////            mImageCapturer.start();
-////            isVisionBound = true;
-//            Button button = (Button) findViewById(R.id.CaptureBtn);
-//            while(!(isVisionBound && mImageCapturer.gotBitmap())){
-//                Log.v(TAG, String.format("Waiting for bitmap: %b isVisionBound: %b", isVisionBound, mImageCapturer.gotBitmap()));
-//            }
-//            button.setEnabled(isVisionBound);
-//        }
-//
-//        @Override
-//        public void onUnbind(String reason) {
-//            Log.d(TAG, "Vision onUnbind() called with: reason = [" + reason + "]");
-//        }
-//    };
+    ServiceBinder.BindStateListener mBindStateListenerVision = new ServiceBinder.BindStateListener() {
+        @Override
+        public void onBind() {
+            Log.d(TAG, "Vision onBind() called");
+            mImageCapturer.start();
+            isVisionBound = true;
+            Button button = (Button) findViewById(R.id.CaptureBtn);
+            while(!(isVisionBound && mImageCapturer.gotBitmap())){
+                Log.v(TAG, String.format("Waiting for bitmap: %b isVisionBound: %b", isVisionBound, mImageCapturer.gotBitmap()));
+            }
+            button.setEnabled(isVisionBound);
+        }
+
+        @Override
+        public void onUnbind(String reason) {
+            Log.d(TAG, "Vision onUnbind() called with: reason = [" + reason + "]");
+        }
+    };
 
     private ServiceBinder.BindStateListener mServiceBindListenerHead = new ServiceBinder.BindStateListener() {
         @Override
