@@ -73,7 +73,7 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
      * camera ids queue.
      */
     private Queue<String> cameraIds;
-    
+
     private String currentCameraId;
     private boolean cameraClosed;
 
@@ -184,7 +184,7 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
             cameraDevice = camera;
             Log.i(TAG, "Taking picture from camera " + camera.getId());
             //Take the picture after some delay. It may resolve getting a black dark photos.
-            new Handler().postDelayed(this::run, 500);
+            new Handler().postDelayed(this::run, 1000);
         }
 
         @Override
@@ -256,7 +256,13 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
         captureBuilder.addTarget(reader.getSurface());
         captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
-        captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation());
+
+        if(annotatedImage.getPitch() > 90){
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, (getOrientation() + 180) % 360);
+        }
+        else{
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation());
+        }
         captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,getRange());
         reader.setOnImageAvailableListener(onImageAvailableListener, mBackgroundHandler);
         cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
@@ -279,7 +285,17 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
 
     private void saveImageToDisk(final byte[] bytes) {
         annotatedImage.setTimeTaken(System.currentTimeMillis());
-        final File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/" + annotatedImage.encodeFilename());
+        String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                + File.separator
+                + annotatedImage.getRoomLabel()
+                + File.separator;
+
+        File directory = new File(path);
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        File file = new File(directory, annotatedImage.encodeFilename());
         try (final OutputStream outputStream = new FileOutputStream(file)) {
             outputStream.write(bytes);
             outputStream.flush();

@@ -3,6 +3,7 @@ package com.tud.alexw.capturedataset;
 import android.Manifest;
 import android.annotation.TargetApi;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
@@ -47,10 +48,10 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_CODE = 1;
 
     private ImageView imageView;
-    private TextView textViewFilename;
     private EditText inputPlaceLabel;
     private EditText inputX;
     private EditText inputY;
+    private EditText inputBaseYaw;
 
 
     //The capture service
@@ -61,12 +62,9 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        checkPermissions();
-        //remove title bar
-        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
 
+        checkPermissions();
         // get Vision SDK instance
         mHead = Head.getInstance();
         mHead.bindService(getApplicationContext(), mServiceBindListenerHead);
@@ -74,14 +72,14 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         mAnnotatedImage = new AnnotatedImage();
 
         imageView = (ImageView) findViewById(R.id.imageView);
-        textViewFilename = (TextView) findViewById(R.id.textViewFilename);
         inputPlaceLabel = (EditText) findViewById(R.id.inputPlaceLabel);
         inputX = (EditText) findViewById(R.id.inputX);
         inputY = (EditText) findViewById(R.id.inputY);
+        inputBaseYaw = (EditText) findViewById(R.id.inputBaseYaw);
 
         pictureService = PictureCapturingServiceImpl.getInstance(this);
-        int[] pitchValues = {0, 45};
-        int[] yawValues = {0, 0};
+        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 125, 125, 125, 125, 125, 125, 125, 125, 125, 125};
+        int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
         moveHead = new MoveHead(mHead, this, yawValues, pitchValues);
 
 
@@ -99,6 +97,21 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
     @Override
     public void onHeadMovementDone(int yaw, int pitch) {
+
+        // convert local pitch and yaw to global measurements
+        yaw = (-1 * yaw) + Integer.parseInt(inputBaseYaw.getText().toString());
+
+
+        if(pitch > 90){
+            if(pitch == 174){
+                pitch = 0;
+            }
+            else{
+                pitch -= 90;
+            }
+            yaw += 180;
+        }
+        yaw %= 360;
         mAnnotatedImage.setYaw(yaw);
         mAnnotatedImage.setPitch(pitch);
         pictureService.startCapturing(this, mAnnotatedImage);
@@ -148,6 +161,12 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     protected void onDestroy() {
         mHead.unbindService();
         super.onDestroy();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        // ignore orientation/keyboard change
+        super.onConfigurationChanged(newConfig);
     }
 
     private void showToast(final String text) {
