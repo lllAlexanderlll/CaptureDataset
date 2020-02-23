@@ -61,7 +61,7 @@ public class Utils {
                 !(isClose(radToDegree(head.getHeadJointYaw().getAngle()), yaw_deg) &&
                         isClose(radToDegree(head.getWorldPitch().getAngle()), pitch_deg))
         ) {
-            Log.i(TAG, String.format("Waiting for Head to turn from (%d, %d) to (%d, %d)", radToDegree(head.getHeadJointYaw().getAngle()), radToDegree(head.getWorldPitch().getAngle()), yaw_deg, pitch_deg));
+            Log.v(TAG, String.format("Waiting for Head to turn from (%d, %d) to (%d, %d)", radToDegree(head.getHeadJointYaw().getAngle()), radToDegree(head.getWorldPitch().getAngle()), yaw_deg, pitch_deg));
         }
     }
 }
