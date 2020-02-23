@@ -8,15 +8,15 @@ import com.segway.robot.sdk.vision.frame.Frame;
 import com.segway.robot.sdk.vision.stream.StreamInfo;
 import com.segway.robot.sdk.vision.stream.StreamType;
 
-public class ImageCapturer {
+public class ImageCapturerLoomo {
 
-    private static final String TAG = "ImageCapturer";
+    private static final String TAG = "ImageCapturerLoomo";
     private Vision mVision;
     private StreamInfo mColorInfo;
     private AnnotatedImage mAnnotatedImage;
     private Bitmap mBitmap;
 
-    public ImageCapturer(Vision mVision) {
+    public ImageCapturerLoomo(Vision mVision) {
         this.mVision = mVision;
         this.mAnnotatedImage = new AnnotatedImage();
         this.mBitmap = null;

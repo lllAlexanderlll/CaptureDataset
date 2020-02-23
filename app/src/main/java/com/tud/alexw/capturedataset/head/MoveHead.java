@@ -1,8 +1,9 @@
-package com.tud.alexw.capturedataset;
+package com.tud.alexw.capturedataset.head;
 
 import android.util.Log;
 
 import com.segway.robot.sdk.locomotion.head.Head;
+import com.tud.alexw.capturedataset.Utils;
 
 import static com.tud.alexw.capturedataset.Utils.degreeToRad;
 import static com.tud.alexw.capturedataset.Utils.isClose;
@@ -16,7 +17,7 @@ public class MoveHead {
     private Head mHead;
     private int counter = 0;
 
-    MoveHead(Head head, MoveHeadListener listener, int[] yaws, int[] pitches){
+    public MoveHead(Head head, MoveHeadListener listener, int[] yaws, int[] pitches){
         this.pitches = pitches;
         this.yaws = yaws;
         mHead = head;

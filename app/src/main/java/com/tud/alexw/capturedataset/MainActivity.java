@@ -8,7 +8,6 @@ import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,6 +20,8 @@ import com.segway.robot.sdk.locomotion.head.Head;
 import com.tud.alexw.capturedataset.capture.APictureCapturingService;
 import com.tud.alexw.capturedataset.capture.PictureCapturingListener;
 import com.tud.alexw.capturedataset.capture.PictureCapturingServiceImpl;
+import com.tud.alexw.capturedataset.head.MoveHead;
+import com.tud.alexw.capturedataset.head.MoveHeadListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +32,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class MainActivity extends AppCompatActivity implements PictureCapturingListener, MoveHeadListener, ActivityCompat.OnRequestPermissionsResultCallback{
+public class MainActivity extends AppCompatActivity implements PictureCapturingListener, MoveHeadListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
     private Head mHead;
 
@@ -56,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     private APictureCapturingService pictureService;
 
     private MoveHead moveHead;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,9 +75,9 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
         imageView = (ImageView) findViewById(R.id.imageView);
         textViewFilename = (TextView) findViewById(R.id.textViewFilename);
-        inputPlaceLabel = (EditText)findViewById(R.id.inputPlaceLabel);
-        inputX = (EditText)findViewById(R.id.inputX);
-        inputY = (EditText)findViewById(R.id.inputY);
+        inputPlaceLabel = (EditText) findViewById(R.id.inputPlaceLabel);
+        inputX = (EditText) findViewById(R.id.inputX);
+        inputY = (EditText) findViewById(R.id.inputY);
 
         pictureService = PictureCapturingServiceImpl.getInstance(this);
         int[] pitchValues = {0, 45};
@@ -122,7 +124,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     @Override
     protected void onResume() {
         super.onResume();
-        if(!mHead.isBind()){
+        if (!mHead.isBind()) {
             mHead.bindService(getApplicationContext(), mServiceBindListenerHead);
         }
         pictureService.startBackgroundThread();
@@ -165,7 +167,6 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         }
         showToast("No camera detected!");
     }
-
 
 
     @Override
