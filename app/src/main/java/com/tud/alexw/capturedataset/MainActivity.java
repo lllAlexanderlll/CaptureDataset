@@ -78,8 +78,12 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         inputBaseYaw = (EditText) findViewById(R.id.inputBaseYaw);
 
         pictureService = PictureCapturingServiceImpl.getInstance(this);
-        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 125, 125, 125, 125, 125, 125, 125, 125, 125, 125};
+        pictureService.startCapturing(this, mAnnotatedImage);
+
+        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 145, 145, 145, 145, 145, 174, 174, 174, 174, 174};
         int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
+//        int[] pitchValues = {0, 174};
+//        int[] yawValues = {0, 0};
         moveHead = new MoveHead(mHead, this, yawValues, pitchValues);
 
 
@@ -97,24 +101,9 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
     @Override
     public void onHeadMovementDone(int yaw, int pitch) {
-
-        // convert local pitch and yaw to global measurements
-        yaw = (-1 * yaw) + Integer.parseInt(inputBaseYaw.getText().toString());
-
-
-        if(pitch > 90){
-            if(pitch == 174){
-                pitch = 0;
-            }
-            else{
-                pitch -= 90;
-            }
-            yaw += 180;
-        }
-        yaw %= 360;
-        mAnnotatedImage.setYaw(yaw);
+        mAnnotatedImage.setYaw(yaw + Integer.parseInt(inputBaseYaw.getText().toString()));
         mAnnotatedImage.setPitch(pitch);
-        pictureService.startCapturing(this, mAnnotatedImage);
+        pictureService.capture();
     }
 
     /**
@@ -153,6 +142,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     @Override
     protected void onStop() {
         mHead.unbindService();
+        pictureService.endCapturing();
         super.onStop();
         finish();
     }
@@ -160,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     @Override
     protected void onDestroy() {
         mHead.unbindService();
+        pictureService.endCapturing();
         super.onDestroy();
     }
 

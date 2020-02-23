@@ -66,6 +66,8 @@ public abstract class APictureCapturingService {
      */
     public abstract void startCapturing(final PictureCapturingListener listener, AnnotatedImage annotatedImage);
 
+    public abstract void endCapturing();
+    public abstract void capture();
     public void startBackgroundThread() {
     }
 

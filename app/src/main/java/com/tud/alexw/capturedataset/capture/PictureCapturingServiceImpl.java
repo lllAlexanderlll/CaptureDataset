@@ -150,13 +150,7 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
             super.onCaptureCompleted(session, request, result);
-            if(!cameraClosed){
-                closeCamera();
-            }
-
         }
-
-
     };
 
     private final ImageReader.OnImageAvailableListener onImageAvailableListener = (ImageReader imReader) -> {
@@ -169,13 +163,6 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
     };
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
-        private void run() {
-            try {
-                takePicture();
-            } catch (final CameraAccessException e) {
-                Log.e(TAG, " exception occurred while taking picture from " + currentCameraId, e);
-            }
-        }
 
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
@@ -184,7 +171,6 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
             cameraDevice = camera;
             Log.i(TAG, "Taking picture from camera " + camera.getId());
             //Take the picture after some delay. It may resolve getting a black dark photos.
-            new Handler().postDelayed(this::run, 1000);
         }
 
         @Override
@@ -236,7 +222,15 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         }
     }
 
-    private void takePicture() throws CameraAccessException {
+    @Override
+    public void capture(){
+        if(!cameraClosed){
+            new Handler().postDelayed(this::takePicture, 1000);
+        }
+    }
+
+    private void takePicture() {
+        try {
         if (null == cameraDevice) {
             Log.e(TAG, "cameraDevice is null");
             return;
@@ -255,13 +249,17 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         outputSurfaces.add(reader.getSurface());
         final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
         captureBuilder.addTarget(reader.getSurface());
-        captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
 
-        if(annotatedImage.getPitch() > 90){
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, (getOrientation() + 180) % 360);
+        captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_OFF);
+        captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_OFF);
+//        captureBuilder.set(CaptureRequest.SENSOR_SENSITIVITY, 1200);
+        captureBuilder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, 100000000L);
+
+        if(annotatedImage.getPitch() <= 90){
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 0);
         }
         else{
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation());
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 180);
         }
         captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,getRange());
         reader.setOnImageAvailableListener(onImageAvailableListener, mBackgroundHandler);
@@ -280,6 +278,9 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
                     }
                 }
                 , mBackgroundHandler);
+        } catch (final CameraAccessException e) {
+            Log.e(TAG, " exception occurred while taking picture from " + currentCameraId, e);
+        }
     }
 
 
@@ -319,6 +320,14 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
             Log.e(TAG, "Exception occurred while saving picture to external storage ", e);
         }
     }
+
+    @Override
+    public void endCapturing(){
+        if(!cameraClosed){
+            closeCamera();
+        }
+    }
+
 
     private void closeCamera() {
         Log.d(TAG, "closing camera " + cameraDevice.getId());

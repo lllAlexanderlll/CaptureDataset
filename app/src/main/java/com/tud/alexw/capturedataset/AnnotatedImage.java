@@ -60,7 +60,23 @@ public class AnnotatedImage {
         }
     }
 
+    private void transformToGlobalCoordinates(){
+        // convert local pitch and yaw to global measurements
+
+        if(pitch > 90){
+            if(pitch == 174){
+                pitch = 0;
+            }
+            else{
+                pitch -= 90;
+            }
+            yaw += 180;
+        }
+        yaw %= 360;
+    }
+
     public String encodeFilename(){
+        transformToGlobalCoordinates();
         if(timeTaken == -1 || yaw == -1 || roomLabel == null){
             String errorMsg = "Cannot save AnnotatedImage. Not fully initialised: " + this;
             Log.e(TAG, errorMsg);
