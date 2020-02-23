@@ -1,5 +1,5 @@
 package com.tud.alexw.capturedataset;
 
 public interface MoveHeadListener {
-    void onHeadMovementDone();
+    void onHeadMovementDone(int yaw, int pitch);
 }

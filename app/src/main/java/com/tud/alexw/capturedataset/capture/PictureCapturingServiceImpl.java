@@ -22,14 +22,19 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
+
+import com.tud.alexw.capturedataset.AnnotatedImage;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -74,6 +79,8 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
     
     private String currentCameraId;
     private boolean cameraClosed;
+
+    AnnotatedImage annotatedImage;
     /**
      * stores a sorted map of (pictureUrlOnDisk, PictureData).
      */
@@ -104,7 +111,8 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
      * @param listener picture capturing listener
      */
     @Override
-    public void startCapturing(final PictureCapturingListener listener) {
+    public void startCapturing(final PictureCapturingListener listener, AnnotatedImage annotatedImage) {
+        this.annotatedImage = annotatedImage;
         this.picturesTaken = new TreeMap<>();
         this.capturingListener = listener;
         this.cameraIds = new LinkedList<>();
@@ -145,10 +153,14 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
             super.onCaptureCompleted(session, request, result);
-            closeCamera();
-        }
-    };
+            if(!cameraClosed){
+                closeCamera();
+            }
 
+        }
+
+
+    };
 
     private final ImageReader.OnImageAvailableListener onImageAvailableListener = (ImageReader imReader) -> {
         final Image image = imReader.acquireLatestImage();
@@ -202,6 +214,31 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         }
     };
 
+
+    private Range<Integer> getRange() {
+        try {
+            CameraCharacteristics chars = manager.getCameraCharacteristics(cameraDevice.getId());
+            Range<Integer>[] ranges = chars.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+            Range<Integer> result = null;
+            for (Range<Integer> range : ranges) {
+                int upper = range.getUpper();
+                // 10 - min range upper for my needs
+                if (upper >= 10) {
+                    if (result == null || upper < result.getUpper().intValue()) {
+                        result = range;
+                    }
+                }
+            }
+            if (result == null) {
+                result = ranges[0];
+            }
+            return result;
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     private void takePicture() throws CameraAccessException {
         if (null == cameraDevice) {
             Log.e(TAG, "cameraDevice is null");
@@ -223,6 +260,7 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         captureBuilder.addTarget(reader.getSurface());
         captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
         captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation());
+        captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,getRange());
         reader.setOnImageAvailableListener(onImageAvailableListener, mBackgroundHandler);
         cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
                     @Override
@@ -243,8 +281,8 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
 
 
     private void saveImageToDisk(final byte[] bytes) {
-        final String cameraId = this.cameraDevice == null ? UUID.randomUUID().toString() : this.cameraDevice.getId();
-        final File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/" + cameraId + "_pic.jpg");
+        annotatedImage.setTimeTaken(System.currentTimeMillis());
+        final File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/" + annotatedImage.encodeFilename());
         try (final OutputStream outputStream = new FileOutputStream(file)) {
             outputStream.write(bytes);
             outputStream.flush();

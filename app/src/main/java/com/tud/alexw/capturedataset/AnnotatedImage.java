@@ -61,14 +61,14 @@ public class AnnotatedImage {
     }
 
     public String encodeFilename(){
-        if(timeTaken == -1 || yaw == -1 || roomLabel == null || bitmap == null){
+        if(timeTaken == -1 || yaw == -1 || roomLabel == null){
             String errorMsg = "Cannot save AnnotatedImage. Not fully initialised: " + this;
             Log.e(TAG, errorMsg);
             throw new IllegalStateException(errorMsg);
         }
         else {
             String timeFormatted = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Timestamp(timeTaken));
-            return String.format("%s_%s_%d_%d_%d_%d.png", timeFormatted, roomLabel, posX, posY, yaw, pitch);
+            return String.format("%s_%s_%d_%d_%d_%d.jpg", timeFormatted, roomLabel, posX, posY, yaw, pitch);
         }
     }
 
@@ -121,6 +121,10 @@ public class AnnotatedImage {
         } catch (IOException exception) {
             exception.printStackTrace();
         }
+    }
+
+    public void setTimeTaken(long timeTaken) {
+        this.timeTaken = timeTaken;
     }
 
     public void setBitmap(Bitmap bitmap) {

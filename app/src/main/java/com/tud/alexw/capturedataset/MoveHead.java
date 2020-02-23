@@ -12,18 +12,32 @@ public class MoveHead {
 
     private String TAG = "MoveHead";
     private MoveHeadListener moveHeadListener;
-    private int[] yaws, pitchs;
+    private int[] yaws, pitches;
     private Head mHead;
+    private int counter = 0;
 
-    MoveHead(Head head, int[] yaws, int[] pitchs){
-        this.pitchs = pitchs;
+    MoveHead(Head head, MoveHeadListener listener, int[] yaws, int[] pitches){
+        this.pitches = pitches;
         this.yaws = yaws;
         mHead = head;
+        moveHeadListener = listener;
+    }
+
+    private void reset(){
+        counter = 0;
     }
 
     public void next(){
-        //TODO;
-        throw new IllegalStateException("Not implemented yet");
+        if(counter < yaws.length){
+            moveHead(yaws[counter], pitches[counter]);
+            moveHeadListener.onHeadMovementDone(yaws[counter], pitches[counter]);
+            counter++;
+        }
+        else{
+            reset();
+            mHead.resetOrientation();
+            mHead.setWorldPitch(Utils.degreeToRad(45));
+        }
     }
 
     private void moveHead(int yaw_deg, int pitch_deg){
@@ -42,6 +56,5 @@ public class MoveHead {
         ) {
             Log.v(TAG, String.format("Waiting for Head to turn from (%d, %d) to (%d, %d)", radToDegree(mHead.getHeadJointYaw().getAngle()), radToDegree(mHead.getWorldPitch().getAngle()), yaw_deg, pitch_deg));
         }
-        moveHeadListener.onHeadMovementDone();
     }
 }

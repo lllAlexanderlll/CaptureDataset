@@ -47,6 +47,10 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
     private ImageView imageView;
     private TextView textViewFilename;
+    private EditText inputPlaceLabel;
+    private EditText inputX;
+    private EditText inputY;
+
 
     //The capture service
     private APictureCapturingService pictureService;
@@ -69,47 +73,33 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
         imageView = (ImageView) findViewById(R.id.imageView);
         textViewFilename = (TextView) findViewById(R.id.textViewFilename);
+        inputPlaceLabel = (EditText)findViewById(R.id.inputPlaceLabel);
+        inputX = (EditText)findViewById(R.id.inputX);
+        inputY = (EditText)findViewById(R.id.inputY);
 
         pictureService = PictureCapturingServiceImpl.getInstance(this);
+        int[] pitchValues = {0, 45};
+        int[] yawValues = {0, 0};
+        moveHead = new MoveHead(mHead, this, yawValues, pitchValues);
 
 
         final Button captureButton = (Button) findViewById(R.id.CaptureBtn);
         captureButton.setOnClickListener(v -> {
-                Log.d(TAG, "Button 'Capture' clicked");
-                EditText inputPlaceLabel = (EditText)findViewById(R.id.inputPlaceLabel);
-                final String roomLabel = inputPlaceLabel.getText().toString();
+            Log.d(TAG, "Button 'Capture' clicked");
+            mAnnotatedImage.setPosY(Integer.parseInt(inputY.getText().toString()));
+            mAnnotatedImage.setPosX(Integer.parseInt(inputX.getText().toString()));
+            mAnnotatedImage.setRoomLabel(inputPlaceLabel.getText().toString());
 
-                EditText inputX = (EditText)findViewById(R.id.inputX);
-                final int X = Integer.parseInt(inputX.getText().toString());
-
-                EditText inputY = (EditText)findViewById(R.id.inputY);
-                final int Y = Integer.parseInt(inputY.getText().toString());
-
-                mHead.resetOrientation();
-                int[] pitchValues = {0, 45};
-                int[] yawValues = {0, 0};
-                for(int i = 0; i < yawValues.length; i++) {
-                    moveHead.next();
-//                  takePicture(roomLabel, X, Y, yawValues[i], pitchValues[i]);
-//                    if (mAnnotatedImage.getBitmap() != null) {
-//                        mAnnotatedImage.saveImageToExternalStorage(getApplicationContext());
-//                        runOnUiThread(() -> {
-//
-//                            imageView.setImageBitmap(mAnnotatedImage.getBitmap());
-//                            textViewFilename.setText(mAnnotatedImage.getFilename());
-//
-//                        });
-//
-//                    }
-                }
-                mHead.resetOrientation();
-                mHead.setWorldPitch(Utils.degreeToRad(45));
+            mHead.resetOrientation();
+            moveHead.next();
         });
     }
 
     @Override
-    public void onHeadMovementDone() {
-        pictureService.startCapturing(this);
+    public void onHeadMovementDone(int yaw, int pitch) {
+        mAnnotatedImage.setYaw(yaw);
+        mAnnotatedImage.setPitch(pitch);
+        pictureService.startCapturing(this, mAnnotatedImage);
     }
 
     /**
@@ -124,9 +114,8 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
                 final Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 512, nh, true);
                 imageView.setImageBitmap(scaled);
             });
+            moveHead.next();
         }
-        //TODO: Start next head move
-        moveHead.next();
     }
 
 

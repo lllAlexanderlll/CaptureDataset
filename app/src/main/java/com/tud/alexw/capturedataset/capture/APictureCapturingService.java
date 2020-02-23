@@ -6,6 +6,8 @@ import android.hardware.camera2.CameraManager;
 import android.util.SparseIntArray;
 import android.view.Surface;
 
+import com.tud.alexw.capturedataset.AnnotatedImage;
+
 /**
  * Abstract Picture Taking Service.
  *
@@ -62,7 +64,7 @@ public abstract class APictureCapturingService {
      *
      * @param listener picture capturing listener
      */
-    public abstract void startCapturing(final PictureCapturingListener listener);
+    public abstract void startCapturing(final PictureCapturingListener listener, AnnotatedImage annotatedImage);
 
     public void startBackgroundThread() {
     }
