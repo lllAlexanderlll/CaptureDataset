@@ -31,7 +31,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-public class MainActivity extends AppCompatActivity implements PictureCapturingListener, ActivityCompat.OnRequestPermissionsResultCallback{
+public class MainActivity extends AppCompatActivity implements PictureCapturingListener, MoveHeadListener, ActivityCompat.OnRequestPermissionsResultCallback{
 
     private Head mHead;
 
@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     //The capture service
     private APictureCapturingService pictureService;
 
-
+    private MoveHead moveHead;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
         pictureService = PictureCapturingServiceImpl.getInstance(this);
 
+
         final Button captureButton = (Button) findViewById(R.id.CaptureBtn);
         captureButton.setOnClickListener(v -> {
                 Log.d(TAG, "Button 'Capture' clicked");
@@ -86,26 +87,48 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
                 mHead.resetOrientation();
                 int[] pitchValues = {0, 45};
-                int[] yawValues = {0, 45};
+                int[] yawValues = {0, 0};
                 for(int i = 0; i < yawValues.length; i++) {
-                    Utils.moveHead(mHead, yawValues[i], pitchValues[i]);
+                    moveHead.next();
 //                  takePicture(roomLabel, X, Y, yawValues[i], pitchValues[i]);
-                    pictureService.startCapturing(this);
-                    if (mAnnotatedImage.getBitmap() != null) {
-                        mAnnotatedImage.saveImageToExternalStorage(getApplicationContext());
-                        runOnUiThread(() -> {
-
-                            imageView.setImageBitmap(mAnnotatedImage.getBitmap());
-                            textViewFilename.setText(mAnnotatedImage.getFilename());
-
-                        });
-
-                    }
+//                    if (mAnnotatedImage.getBitmap() != null) {
+//                        mAnnotatedImage.saveImageToExternalStorage(getApplicationContext());
+//                        runOnUiThread(() -> {
+//
+//                            imageView.setImageBitmap(mAnnotatedImage.getBitmap());
+//                            textViewFilename.setText(mAnnotatedImage.getFilename());
+//
+//                        });
+//
+//                    }
                 }
                 mHead.resetOrientation();
                 mHead.setWorldPitch(Utils.degreeToRad(45));
         });
     }
+
+    @Override
+    public void onHeadMovementDone() {
+        pictureService.startCapturing(this);
+    }
+
+    /**
+     * Displaying the pictures taken.
+     */
+    @Override
+    public void onCaptureDone(String pictureUrl, byte[] pictureData) {
+        if (pictureData != null && pictureUrl != null) {
+            runOnUiThread(() -> {
+                final Bitmap bitmap = BitmapFactory.decodeByteArray(pictureData, 0, pictureData.length);
+                final int nh = (int) (bitmap.getHeight() * (512.0 / bitmap.getWidth()));
+                final Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 512, nh, true);
+                imageView.setImageBitmap(scaled);
+            });
+        }
+        //TODO: Start next head move
+        moveHead.next();
+    }
+
 
     @Override
     protected void onResume() {
@@ -154,20 +177,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         showToast("No camera detected!");
     }
 
-    /**
-     * Displaying the pictures taken.
-     */
-    @Override
-    public void onCaptureDone(String pictureUrl, byte[] pictureData) {
-        if (pictureData != null && pictureUrl != null) {
-            runOnUiThread(() -> {
-                final Bitmap bitmap = BitmapFactory.decodeByteArray(pictureData, 0, pictureData.length);
-                final int nh = (int) (bitmap.getHeight() * (512.0 / bitmap.getWidth()));
-                final Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 512, nh, true);
-                imageView.setImageBitmap(scaled);
-            });
-        }
-    }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {

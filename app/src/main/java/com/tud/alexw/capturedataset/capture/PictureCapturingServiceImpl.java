@@ -223,12 +223,12 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         captureBuilder.addTarget(reader.getSurface());
         captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
         captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, getOrientation());
-        reader.setOnImageAvailableListener(onImageAvailableListener, null);
+        reader.setOnImageAvailableListener(onImageAvailableListener, mBackgroundHandler);
         cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
                     @Override
                     public void onConfigured(@NonNull CameraCaptureSession session) {
                         try {
-                            session.capture(captureBuilder.build(), captureListener, null);
+                            session.capture(captureBuilder.build(), captureListener, mBackgroundHandler);
                         } catch (final CameraAccessException e) {
                             Log.e(TAG, " exception occurred while accessing " + currentCameraId, e);
                         }
@@ -238,7 +238,7 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
                     public void onConfigureFailed(@NonNull CameraCaptureSession session) {
                     }
                 }
-                , null);
+                , mBackgroundHandler);
     }
 
 
