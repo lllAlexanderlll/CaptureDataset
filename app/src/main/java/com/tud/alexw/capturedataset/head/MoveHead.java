@@ -44,6 +44,7 @@ public class MoveHead {
     }
 
     public void retry(){
+        Log.i(TAG, "Retrying to move head");
         counter--;
         next();
     }
@@ -58,6 +59,7 @@ public class MoveHead {
             reset();
             mHead.resetOrientation();
             mHead.setWorldPitch(Utils.degreeToRad(45));
+            moveHeadListener.onAllHeadMovementsDone();
         }
     }
 
@@ -70,12 +72,13 @@ public class MoveHead {
         mHead.setHeadJointYaw(degreeToRad(yaw_deg));
         mHead.setWorldPitch(degreeToRad(pitch_deg));
         Log.i(TAG,String.format("Current motor pitch and yaw values: %f, %f", mHead.getHeadJointYaw().getAngle(), mHead.getWorldPitch().getAngle()));
-        Log.i(TAG,String.format("Set motor pitch and yaw values: %f, %f", degreeToRad(yaw_deg), degreeToRad(pitch_deg)));
+        Log.i(TAG,String.format("Set motor pitch and yaw values: %f, %f (%d, %d)", degreeToRad(yaw_deg), degreeToRad(pitch_deg), yaw_deg, pitch_deg));
         while (
                 !(isClose(radToDegree(mHead.getHeadJointYaw().getAngle()), yaw_deg) &&
                         isClose(radToDegree(mHead.getWorldPitch().getAngle()), pitch_deg))
         ) {
             Log.v(TAG, String.format("Waiting for Head to turn from (%d, %d) to (%d, %d)", radToDegree(mHead.getHeadJointYaw().getAngle()), radToDegree(mHead.getWorldPitch().getAngle()), yaw_deg, pitch_deg));
         }
+        Log.i(TAG, String.format("Move to (%d, %d) done", yaw_deg, pitch_deg));
     }
 }

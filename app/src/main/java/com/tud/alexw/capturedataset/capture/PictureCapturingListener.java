@@ -27,15 +27,7 @@ public interface PictureCapturingListener {
      * @param pictureUrl  taken picture's location on the device
      * @param pictureData taken picture's data as a byte array
      */
-    void onCaptureDone(String pictureUrl, byte[] pictureData);
-
-    /**
-     * a callback called when we've done taking pictures from ALL AVAILABLE cameras
-     * OR when NO camera was detected on the device
-     *
-     * @param picturesTaken : a  Map<PictureUrl, PictureData>
-     */
-    void onDoneCapturingAllPhotos(TreeMap<String, byte[]> picturesTaken);
+    void onCaptureDone(byte[] pictureData);
 
     void onCapturingFailed();
 }

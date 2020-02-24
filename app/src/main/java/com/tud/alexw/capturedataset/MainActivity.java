@@ -8,7 +8,9 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
+import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     private EditText inputY;
     private EditText inputBaseYaw;
 
+    private long captureTime_ms;
 
     //The capture service
     private APictureCapturingService pictureService;
@@ -71,6 +74,8 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
         mAnnotatedImage = new AnnotatedImage();
 
+        captureTime_ms = 0;
+
         imageView = (ImageView) findViewById(R.id.imageView);
         inputPlaceLabel = (EditText) findViewById(R.id.inputPlaceLabel);
         inputX = (EditText) findViewById(R.id.inputX);
@@ -78,12 +83,17 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         inputBaseYaw = (EditText) findViewById(R.id.inputBaseYaw);
 
         pictureService = PictureCapturingServiceImpl.getInstance(this);
+        boolean saveImages = false;
+        pictureService.setDoSaveImage(saveImages);
+        if(!saveImages){
+            findViewById(R.id.savingFlag).setVisibility(View.VISIBLE);
+        }
         pictureService.startCapturing(this, mAnnotatedImage);
 
-//        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 145, 145, 145, 145, 145, 174, 174, 174, 174, 174};
-//        int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
-        int[] pitchValues = {   0, 35, 145, 174};
-        int[] yawValues = {     0,  0,   0,   0};
+        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 145, 145, 145, 145, 145, 174, 174, 174, 174, 174};
+        int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
+//        int[] pitchValues = {   0, 35, 145, 174};
+//        int[] yawValues = {     0,  0,   0,   0};
         moveHead = new MoveHead(mHead, this, yawValues, pitchValues);
 
 
@@ -101,29 +111,40 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
     @Override
     public void onHeadMovementDone(int yaw, int pitch) {
+        Log.i(TAG, String.format("Head movement (%d, %d) done" , yaw, pitch));
         mAnnotatedImage.setYaw(yaw + Integer.parseInt(inputBaseYaw.getText().toString()));
         mAnnotatedImage.setPitch(pitch);
+        captureTime_ms = System.currentTimeMillis();
         pictureService.capture();
+        final Handler handler = new Handler();
+        handler.postDelayed(() -> {
+            if(System.currentTimeMillis() - captureTime_ms > 2000){
+                Log.e(TAG, "Needed to restart capturing after time limit reached!");
+                pictureService.capture();
+            }
+        }, 2000);
     }
 
+    @Override
+    public void onAllHeadMovementsDone(){
+        Log.i(TAG, "No movements left! Capturing finished!");
+    }
     /**
      * Displaying the pictures taken.
      */
     @Override
-    public void onCaptureDone(String pictureUrl, byte[] pictureData) {
-        if (pictureData != null && pictureUrl != null) {
-            runOnUiThread(() -> {
-                final Bitmap bitmap = BitmapFactory.decodeByteArray(pictureData, 0, pictureData.length);
-                final int nh = (int) (bitmap.getHeight() * (512.0 / bitmap.getWidth()));
-                final Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 512, nh, true);
-                imageView.setImageBitmap(scaled);
-            });
+    public void onCaptureDone(byte[] pictureData) {
+        if (pictureData != null) {
+            runOnUiThread(() -> showImage(pictureData));
+            Log.i(TAG, String.format("Taking a photo took %d ms", System.currentTimeMillis() - captureTime_ms));
+            captureTime_ms = System.currentTimeMillis();
             moveHead.next();
         }
     }
 
     @Override
     public void onCapturingFailed(){
+        Log.e(TAG, "Capturing failed!");
         moveHead.retry();
     }
 
@@ -164,24 +185,29 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         super.onConfigurationChanged(newConfig);
     }
 
-    private void showToast(final String text) {
-        runOnUiThread(() ->
-                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show()
-        );
-    }
+    private void showImage(byte[] pictureData) {
+        // Get the dimensions of the View
+        int targetW = imageView.getWidth();
+        int targetH = imageView.getHeight();
 
-    /**
-     * We've finished taking pictures from all phone's cameras
-     */
-    @Override
-    public void onDoneCapturingAllPhotos(TreeMap<String, byte[]> picturesTaken) {
-        if (picturesTaken != null && !picturesTaken.isEmpty()) {
-            showToast("Done capturing all photos!");
-            return;
-        }
-        showToast("No camera detected!");
-    }
+        // Get the dimensions of the bitmap
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        bmOptions.inJustDecodeBounds = true;
 
+        int photoW = bmOptions.outWidth;
+        int photoH = bmOptions.outHeight;
+
+        // Determine how much to scale down the image
+        int scaleFactor = Math.min(photoW/targetW, photoH/targetH);
+
+        // Decode the image file into a Bitmap sized to fill the View
+        bmOptions.inJustDecodeBounds = false;
+        bmOptions.inSampleSize = scaleFactor;
+        bmOptions.inPurgeable = true;
+
+        Bitmap bitmap = BitmapFactory.decodeByteArray(pictureData, 0, pictureData.length, bmOptions);
+        imageView.setImageBitmap(bitmap);
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {

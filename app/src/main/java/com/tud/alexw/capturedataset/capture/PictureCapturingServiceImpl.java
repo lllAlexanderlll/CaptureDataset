@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -77,15 +78,15 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
     private String currentCameraId;
     private boolean cameraClosed;
 
-    AnnotatedImage annotatedImage;
+    private AnnotatedImage annotatedImage;
     /**
      * stores a sorted map of (pictureUrlOnDisk, PictureData).
      */
-    private TreeMap<String, byte[]> picturesTaken;
+    private byte[] image;
     private PictureCapturingListener capturingListener;
 
-    private Handler mBackgroundHandler;
-    private HandlerThread mBackgroundThread;
+//    private Handler mBackgroundHandler;
+//    private HandlerThread mBackgroundThread;
 
     /***
      * private constructor, meant to force the use of {@link #getInstance}  method
@@ -110,7 +111,7 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
     @Override
     public void startCapturing(final PictureCapturingListener listener, AnnotatedImage annotatedImage) {
         this.annotatedImage = annotatedImage;
-        this.picturesTaken = new TreeMap<>();
+        this.image = null;
         this.capturingListener = listener;
         this.cameraIds = new LinkedList<>();
         try {
@@ -121,9 +122,8 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
                 this.currentCameraId = this.cameraIds.poll();
                 openCamera();
             } else {
-                //No camera detected!
-                capturingListener.onDoneCapturingAllPhotos(picturesTaken);
                 Log.e(TAG, "No cameras detected!");
+                endCapturing();
             }
         } catch (final CameraAccessException e) {
             Log.e(TAG, "Exception occurred while accessing the list of cameras", e);
@@ -158,7 +158,7 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         final ByteBuffer buffer = image.getPlanes()[0].getBuffer();
         final byte[] bytes = new byte[buffer.capacity()];
         buffer.get(bytes);
-        saveImageToDisk(bytes);
+        registerImage(bytes);
         image.close();
     };
 
@@ -194,6 +194,7 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
             if (cameraDevice != null && !cameraClosed) {
                 cameraDevice.close();
             }
+            capturingListener.onCapturingFailed();
         }
     };
 
@@ -224,8 +225,12 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
 
     @Override
     public void capture(){
-        if(!cameraClosed){
-            new Handler().postDelayed(this::takePicture, 1000);
+        if(!cameraClosed) {
+            Log.i(TAG, "Taking new image");
+            new Handler().postDelayed(this::takePicture, 500);
+        }
+        else{
+            capturingListener.onCapturingFailed();
         }
     }
 
@@ -280,45 +285,48 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
             , null);
         } catch (final CameraAccessException e) {
             Log.e(TAG, " exception occurred while taking picture from " + currentCameraId, e);
+            capturingListener.onCapturingFailed();
         }
     }
 
 
-    private void saveImageToDisk(final byte[] bytes) {
+    private void registerImage(final byte[] bytes) {
         annotatedImage.setTimeTaken(System.currentTimeMillis());
+
+
         String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
                 + File.separator
                 + annotatedImage.getRoomLabel()
                 + File.separator;
 
         File directory = new File(path);
-        if (!directory.exists()) {
+        if (!directory.exists() || !doSaveImage) {
             directory.mkdirs();
         }
-
         File file = new File(directory, annotatedImage.encodeFilename());
-        try (final OutputStream outputStream = new FileOutputStream(file)) {
-            outputStream.write(bytes);
-            outputStream.flush();
-            ((FileOutputStream) outputStream).getFD().sync();
-            outputStream.close();
 
-            MediaScannerConnection.scanFile(context,
-                    new String[] { file.toString() }, null,
-                    new MediaScannerConnection.OnScanCompletedListener() {
-                        public void onScanCompleted(String path, Uri uri) {
-                            Log.i("ExternalStorage", "Scanned " + path + ":");
-                            Log.i("ExternalStorage", "-> uri=" + uri);
-                        }
-                    });
-            this.picturesTaken.put(file.getPath(), bytes);
-            if (picturesTaken.lastEntry() != null) {
-                capturingListener.onCaptureDone(picturesTaken.lastEntry().getKey(), picturesTaken.lastEntry().getValue());
+        if(doSaveImage) {
+            try (final OutputStream outputStream = new FileOutputStream(file)) {
+                outputStream.write(bytes);
+                outputStream.flush();
+                ((FileOutputStream) outputStream).getFD().sync();
+                outputStream.close();
+
+                MediaScannerConnection.scanFile(context,
+                        new String[]{file.toString()}, null,
+                        new MediaScannerConnection.OnScanCompletedListener() {
+                            public void onScanCompleted(String path, Uri uri) {
+                                Log.i("ExternalStorage", "Scanned " + path + ":");
+                                Log.i("ExternalStorage", "-> uri=" + uri);
+                            }
+                        });
+                Log.i(TAG, "Saved: " + file.getAbsolutePath());
+            } catch (final IOException e) {
+                Log.e(TAG, "Exception occurred while saving picture to external storage ", e);
             }
-            Log.i(TAG, "Saved: " + file.getAbsolutePath());
-        } catch (final IOException e) {
-            Log.e(TAG, "Exception occurred while saving picture to external storage ", e);
         }
+        image = bytes;
+        capturingListener.onCaptureDone(image);
     }
 
     @Override

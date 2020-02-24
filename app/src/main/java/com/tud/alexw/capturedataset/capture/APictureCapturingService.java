@@ -38,6 +38,7 @@ public abstract class APictureCapturingService {
     protected final Activity activity;
     final Context context;
     final CameraManager manager;
+    boolean doSaveImage;
 
     /***
      * constructor.
@@ -48,6 +49,7 @@ public abstract class APictureCapturingService {
         this.activity = activity;
         this.context = activity.getApplicationContext();
         this.manager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+        this.doSaveImage = true;
     }
 
     /***
@@ -68,6 +70,10 @@ public abstract class APictureCapturingService {
 
     public abstract void endCapturing();
     public abstract void capture();
+
+    public void setDoSaveImage(boolean doSaveImage) {
+        this.doSaveImage = doSaveImage;
+    }
 
 //    public abstract void startBackgroundThread();
 //    public abstract void stopBackgroundThread();

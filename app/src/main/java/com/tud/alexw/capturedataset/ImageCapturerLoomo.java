@@ -8,6 +8,7 @@ import com.segway.robot.sdk.vision.frame.Frame;
 import com.segway.robot.sdk.vision.stream.StreamInfo;
 import com.segway.robot.sdk.vision.stream.StreamType;
 
+@Deprecated
 public class ImageCapturerLoomo {
 
     private static final String TAG = "ImageCapturerLoomo";
