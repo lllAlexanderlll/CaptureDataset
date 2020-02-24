@@ -56,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     private EditText inputBaseYaw;
 
     private long captureTime_ms;
+    private int loopCounter = 0;
 
     //The capture service
     private APictureCapturingService pictureService;
@@ -90,10 +91,12 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         }
         pictureService.startCapturing(this, mAnnotatedImage);
 
-        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 145, 145, 145, 145, 145, 174, 174, 174, 174, 174};
-        int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
+//        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 145, 145, 145, 145, 145, 174, 174, 174, 174, 174};
+//        int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
 //        int[] pitchValues = {   0, 35, 145, 174};
 //        int[] yawValues = {     0,  0,   0,   0};
+            int[] pitchValues = {   0, 45};
+            int[] yawValues = {     0, 0};
         moveHead = new MoveHead(mHead, this, yawValues, pitchValues);
 
 
@@ -128,6 +131,8 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     @Override
     public void onAllHeadMovementsDone(){
         Log.i(TAG, "No movements left! Capturing finished!");
+        Log.e(TAG, "Start capturing all over again: Infinity loooooooop! #" + loopCounter++);
+        pictureService.capture();
     }
     /**
      * Displaying the pictures taken.
