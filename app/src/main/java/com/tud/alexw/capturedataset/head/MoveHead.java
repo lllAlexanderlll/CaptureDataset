@@ -5,6 +5,11 @@ import android.util.Log;
 import com.segway.robot.sdk.locomotion.head.Head;
 import com.tud.alexw.capturedataset.Utils;
 
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
 import static com.tud.alexw.capturedataset.Utils.degreeToRad;
 import static com.tud.alexw.capturedataset.Utils.isClose;
 import static com.tud.alexw.capturedataset.Utils.radToDegree;
@@ -13,25 +18,38 @@ public class MoveHead {
 
     private String TAG = "MoveHead";
     private MoveHeadListener moveHeadListener;
-    private int[] yaws, pitches;
+    private List<Integer> yaws, pitches;
     private Head mHead;
     private int counter = 0;
 
     public MoveHead(Head head, MoveHeadListener listener, int[] yaws, int[] pitches){
-        this.pitches = pitches;
-        this.yaws = yaws;
         mHead = head;
         moveHeadListener = listener;
+        addMoves(yaws, pitches);
+    }
+
+    public void addMoves(int[] yaws, int[] pitches){
+        if(yaws.length == pitches.length){
+            for(int i = 0; i < yaws.length; i++){
+                this.pitches.add(pitches[i]);
+                this.yaws.add(yaws[i]);
+            }
+        }
     }
 
     private void reset(){
         counter = 0;
     }
 
+    public void retry(){
+        counter--;
+        next();
+    }
+
     public void next(){
-        if(counter < yaws.length){
-            moveHead(yaws[counter], pitches[counter]);
-            moveHeadListener.onHeadMovementDone(yaws[counter], pitches[counter]);
+        if(counter < yaws.size()){
+            moveHead(yaws.get(counter), pitches.get(counter));
+            moveHeadListener.onHeadMovementDone(yaws.get(counter), pitches.get(counter));
             counter++;
         }
         else{

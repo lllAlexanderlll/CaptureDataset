@@ -68,8 +68,7 @@ public abstract class APictureCapturingService {
 
     public abstract void endCapturing();
     public abstract void capture();
-    public void startBackgroundThread() {
-    }
 
-    public abstract void stopBackgroundThread();
+//    public abstract void startBackgroundThread();
+//    public abstract void stopBackgroundThread();
 }

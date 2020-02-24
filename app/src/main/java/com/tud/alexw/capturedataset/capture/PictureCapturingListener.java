@@ -37,4 +37,5 @@ public interface PictureCapturingListener {
      */
     void onDoneCapturingAllPhotos(TreeMap<String, byte[]> picturesTaken);
 
+    void onCapturingFailed();
 }

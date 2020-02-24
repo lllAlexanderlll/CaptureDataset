@@ -231,53 +231,53 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
 
     private void takePicture() {
         try {
-        if (null == cameraDevice) {
-            Log.e(TAG, "cameraDevice is null");
-            return;
-        }
-        final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraDevice.getId());
-        Size[] jpegSizes = null;
-        StreamConfigurationMap streamConfigurationMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-        if (streamConfigurationMap != null) {
-            jpegSizes = streamConfigurationMap.getOutputSizes(ImageFormat.JPEG);
-        }
-        final boolean jpegSizesNotEmpty = jpegSizes != null && 0 < jpegSizes.length;
-        int width = jpegSizesNotEmpty ? jpegSizes[0].getWidth() : 640;
-        int height = jpegSizesNotEmpty ? jpegSizes[0].getHeight() : 480;
-        final ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
-        final List<Surface> outputSurfaces = new ArrayList<>();
-        outputSurfaces.add(reader.getSurface());
-        final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-        captureBuilder.addTarget(reader.getSurface());
+            if (null == cameraDevice) {
+                Log.e(TAG, "cameraDevice is null");
+                return;
+            }
+            final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraDevice.getId());
+            Size[] jpegSizes = null;
+            StreamConfigurationMap streamConfigurationMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            if (streamConfigurationMap != null) {
+                jpegSizes = streamConfigurationMap.getOutputSizes(ImageFormat.JPEG);
+            }
+            final boolean jpegSizesNotEmpty = jpegSizes != null && 0 < jpegSizes.length;
+            int width = jpegSizesNotEmpty ? jpegSizes[0].getWidth() : 640;
+            int height = jpegSizesNotEmpty ? jpegSizes[0].getHeight() : 480;
+            final ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
+            final List<Surface> outputSurfaces = new ArrayList<>();
+            outputSurfaces.add(reader.getSurface());
+            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.addTarget(reader.getSurface());
 
-        captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_OFF);
-        captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_OFF);
-//        captureBuilder.set(CaptureRequest.SENSOR_SENSITIVITY, 1200);
-        captureBuilder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, 100000000L);
+            captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_OFF);
+            captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_OFF);
+    //        captureBuilder.set(CaptureRequest.SENSOR_SENSITIVITY, 1200);
+            captureBuilder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, 100000000L);
 
-        if(annotatedImage.getPitch() <= 90){
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 0);
-        }
-        else{
-            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 180);
-        }
-        captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,getRange());
-        reader.setOnImageAvailableListener(onImageAvailableListener, mBackgroundHandler);
-        cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
-                    @Override
-                    public void onConfigured(@NonNull CameraCaptureSession session) {
-                        try {
-                            session.capture(captureBuilder.build(), captureListener, mBackgroundHandler);
-                        } catch (final CameraAccessException e) {
-                            Log.e(TAG, " exception occurred while accessing " + currentCameraId, e);
-                        }
-                    }
-
-                    @Override
-                    public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+            if(annotatedImage.getPitch() <= 90){
+                captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 0);
+            }
+            else{
+                captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 180);
+            }
+            captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,getRange());
+            reader.setOnImageAvailableListener(onImageAvailableListener, null);
+            cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession session) {
+                    try {
+                        session.capture(captureBuilder.build(), captureListener, null);
+                    } catch (final CameraAccessException e) {
+                        Log.e(TAG, " exception occurred while accessing " + currentCameraId, e);
                     }
                 }
-                , mBackgroundHandler);
+
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                }
+            }
+            , null);
         } catch (final CameraAccessException e) {
             Log.e(TAG, " exception occurred while taking picture from " + currentCameraId, e);
         }
@@ -341,23 +341,23 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         }
     }
 
-    @Override
-    public void startBackgroundThread() {
-        mBackgroundThread = new HandlerThread("Camera Background");
-        mBackgroundThread.start();
-        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-    }
-
-    @Override
-    public void stopBackgroundThread() {
-        mBackgroundThread.quitSafely();
-        try {
-            mBackgroundThread.join();
-            mBackgroundThread = null;
-            mBackgroundHandler = null;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
+//    @Override
+//    public void startBackgroundThread() {
+//        mBackgroundThread = new HandlerThread("Camera Background");
+//        mBackgroundThread.start();
+//        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+//    }
+//
+//    @Override
+//    public void stopBackgroundThread() {
+//        mBackgroundThread.quitSafely();
+//        try {
+//            mBackgroundThread.join();
+//            mBackgroundThread = null;
+//            mBackgroundHandler = null;
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 }

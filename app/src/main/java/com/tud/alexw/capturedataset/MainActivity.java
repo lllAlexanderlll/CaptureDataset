@@ -80,10 +80,10 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         pictureService = PictureCapturingServiceImpl.getInstance(this);
         pictureService.startCapturing(this, mAnnotatedImage);
 
-        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 145, 145, 145, 145, 145, 174, 174, 174, 174, 174};
-        int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
-//        int[] pitchValues = {0, 174};
-//        int[] yawValues = {0, 0};
+//        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 145, 145, 145, 145, 145, 174, 174, 174, 174, 174};
+//        int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
+        int[] pitchValues = {   0, 35, 145, 174};
+        int[] yawValues = {     0,  0,   0,   0};
         moveHead = new MoveHead(mHead, this, yawValues, pitchValues);
 
 
@@ -122,6 +122,10 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         }
     }
 
+    @Override
+    public void onCapturingFailed(){
+        moveHead.retry();
+    }
 
     @Override
     protected void onResume() {
@@ -129,13 +133,13 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         if (!mHead.isBind()) {
             mHead.bindService(getApplicationContext(), mServiceBindListenerHead);
         }
-        pictureService.startBackgroundThread();
+//        pictureService.startBackgroundThread();
 
     }
 
     @Override
     protected void onPause() {
-        pictureService.stopBackgroundThread();
+//        pictureService.stopBackgroundThread();
         super.onPause();
     }
 
