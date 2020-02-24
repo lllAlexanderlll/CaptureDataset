@@ -25,6 +25,8 @@ public class MoveHead {
     public MoveHead(Head head, MoveHeadListener listener, int[] yaws, int[] pitches){
         mHead = head;
         moveHeadListener = listener;
+        this.yaws = new LinkedList<>();
+        this.pitches = new LinkedList<>();
         addMoves(yaws, pitches);
     }
 
