@@ -316,6 +316,8 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
 
         String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
                 + File.separator
+                + "testset"
+                + File.separator
                 + annotatedImage.getRoomLabel()
                 + File.separator;
 
