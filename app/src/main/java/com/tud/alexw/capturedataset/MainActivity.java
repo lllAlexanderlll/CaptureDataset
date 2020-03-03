@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
     private EditText inputY;
     private EditText inputBaseYaw;
 
-    private long captureTime_ms;
+    private long captureTime_ms = 0;
     private int loopCounter = 0;
 
     //The capture service
