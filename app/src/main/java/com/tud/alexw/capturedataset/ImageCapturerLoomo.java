@@ -8,6 +8,9 @@ import com.segway.robot.sdk.vision.frame.Frame;
 import com.segway.robot.sdk.vision.stream.StreamInfo;
 import com.segway.robot.sdk.vision.stream.StreamType;
 
+/**
+ * Deprecated class to capture colour images with Loomos RGBD camera
+ */
 @Deprecated
 public class ImageCapturerLoomo {
 
@@ -17,15 +20,26 @@ public class ImageCapturerLoomo {
     private AnnotatedImage mAnnotatedImage;
     private Bitmap mBitmap;
 
+    /**
+     * activates loomos camera with Vision object of the robot SDK
+     * @param mVision Vision object of the robot SDK
+     */
     public ImageCapturerLoomo(Vision mVision) {
         this.mVision = mVision;
         this.mAnnotatedImage = new AnnotatedImage();
         this.mBitmap = null;
     }
 
+    /**
+     * Captures a single image and annotates it with given information
+     * @param roomLabel place label
+     * @param posX local capturing X coordinate
+     * @param posY local capturing Y coordinate
+     * @param yaw robots head yaw value in degree
+     * @param pitch robots head pitch value in degree
+     * @return annotated image i.e. image information and image itself
+     */
     public synchronized AnnotatedImage captureImage(String roomLabel, int posX, int posY, int yaw, int pitch) {
-//        Log.d(TAG, "captureImage() called");
-
         //start image stream listener
         StreamInfo[] streamInfos = mVision.getActivatedStreamInfo();
         for (StreamInfo info : streamInfos) {
@@ -47,6 +61,9 @@ public class ImageCapturerLoomo {
         return null;
     }
 
+    /**
+     * Starts capturing i.e. listing to incoming frames of colour image stream. To be called before captureImage
+     */
     public synchronized void start() {
         Log.d(TAG, "start() called");
         StreamInfo[] streamInfos = mVision.getActivatedStreamInfo();
@@ -63,12 +80,20 @@ public class ImageCapturerLoomo {
             }
         }
     }
+
+    /**
+     * Stops capturing
+     */
     public synchronized void stop() {
         Log.d(TAG, "stop() called");
         mVision.stopListenFrame(StreamType.COLOR);
         mVision.stopListenFrame(StreamType.DEPTH);
     }
 
+    /**
+     * Reports if an image was captured as a bitmap object
+     * @return whether an image was captured as bitmap object
+     */
     public boolean gotBitmap(){
         return mBitmap != null;
     }

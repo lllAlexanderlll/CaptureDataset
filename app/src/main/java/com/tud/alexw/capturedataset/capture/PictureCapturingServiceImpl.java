@@ -4,7 +4,6 @@ import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -23,7 +22,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Range;
 import android.util.Size;
@@ -40,7 +38,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.TreeMap;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -87,8 +84,6 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
     private byte[] image;
     private PictureCapturingListener capturingListener;
 
-//    private Handler mBackgroundHandler;
-//    private HandlerThread mBackgroundThread;
 
     /***
      * private constructor, meant to force the use of {@link #getInstance}  method
@@ -119,7 +114,6 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         try {
             final String[] cameraIds = manager.getCameraIdList();
             if (cameraIds.length > 0) {
-//                this.cameraIds.addAll(Arrays.asList(cameraIds));
                 this.cameraIds.add(cameraIds[0]);
                 this.currentCameraId = this.cameraIds.poll();
                 openCamera();
@@ -132,6 +126,9 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         }
     }
 
+    /**
+     * Opens the camera and reports to the stateCallback object
+     */
     private void openCamera() {
         Log.d(TAG, "opening camera " + currentCameraId);
         try {
@@ -147,41 +144,9 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         }
     }
 
-    private final CameraCaptureSession.CaptureCallback captureListener = new CameraCaptureSession.CaptureCallback() {
-        @Override
-        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
-                                       @NonNull TotalCaptureResult result) {
-            super.onCaptureCompleted(session, request, result);
-        }
-
-        @Override
-        public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureFailure failure) {
-            super.onCaptureFailed(session, request, failure);
-            Log.e(TAG, "Capture failed!");
-        }
-
-        @Override
-        public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
-            super.onCaptureStarted(session, request, timestamp, frameNumber);
-            Log.i(TAG, "Capture started!");
-        }
-
-        @Override
-        public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
-            super.onCaptureProgressed(session, request, partialResult);
-            Log.i(TAG, "Capture processed!");
-        }
-    };
-
-    private final ImageReader.OnImageAvailableListener onImageAvailableListener = (ImageReader imReader) -> {
-        final Image image = imReader.acquireLatestImage();
-        final ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-        final byte[] bytes = new byte[buffer.capacity()];
-        buffer.get(bytes);
-        registerImage(bytes);
-        image.close();
-    };
-
+    /**
+     * Logging of camera state. Closes camera on error, close request or disconnection
+     */
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
 
         @Override
@@ -218,101 +183,53 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         }
     };
 
-
-    private Range<Integer> getRange() {
-        try {
-            CameraCharacteristics chars = manager.getCameraCharacteristics(cameraDevice.getId());
-            Range<Integer>[] ranges = chars.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
-            Range<Integer> result = null;
-            for (Range<Integer> range : ranges) {
-                int upper = range.getUpper();
-                // 10 - min range upper for my needs
-                if (upper >= 10) {
-                    if (result == null || upper < result.getUpper().intValue()) {
-                        result = range;
-                    }
-                }
-            }
-            if (result == null) {
-                result = ranges[0];
-            }
-            return result;
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-            return null;
+    /**
+     * Listens on image capturing, only logs status information
+     */
+    private final CameraCaptureSession.CaptureCallback captureListener = new CameraCaptureSession.CaptureCallback() {
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request,
+                                       @NonNull TotalCaptureResult result) {
+            super.onCaptureCompleted(session, request, result);
         }
-    }
 
-    @Override
-    public void capture(){
-        if(!cameraClosed) {
-            Log.i(TAG, "Taking new image");
-            new Handler().postDelayed(this::takePicture, 500);
+        @Override
+        public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureFailure failure) {
+            super.onCaptureFailed(session, request, failure);
+            Log.e(TAG, "Capture failed!");
         }
-        else{
-            capturingListener.onCapturingFailed();
+
+        @Override
+        public void onCaptureStarted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, long timestamp, long frameNumber) {
+            super.onCaptureStarted(session, request, timestamp, frameNumber);
+            Log.i(TAG, "Capture started!");
         }
-    }
 
-    private void takePicture() {
-        try {
-            if (null == cameraDevice) {
-                Log.e(TAG, "cameraDevice is null");
-                return;
-            }
-            final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraDevice.getId());
-            Size[] jpegSizes = null;
-            StreamConfigurationMap streamConfigurationMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-            if (streamConfigurationMap != null) {
-                jpegSizes = streamConfigurationMap.getOutputSizes(ImageFormat.JPEG);
-            }
-            final boolean jpegSizesNotEmpty = jpegSizes != null && 0 < jpegSizes.length;
-            int width = jpegSizesNotEmpty ? jpegSizes[0].getWidth() : 640;
-            int height = jpegSizesNotEmpty ? jpegSizes[0].getHeight() : 480;
-            final ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
-            final List<Surface> outputSurfaces = new ArrayList<>();
-            outputSurfaces.add(reader.getSurface());
-            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            captureBuilder.addTarget(reader.getSurface());
-
-            captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_OFF);
-            captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_OFF);
-    //        captureBuilder.set(CaptureRequest.SENSOR_SENSITIVITY, 1200);
-            captureBuilder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, 100000000L);
-
-            if(annotatedImage.getPitch() <= 90){
-                captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 0);
-            }
-            else{
-                captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 180);
-            }
-            captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,getRange());
-            reader.setOnImageAvailableListener(onImageAvailableListener, null);
-            cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(@NonNull CameraCaptureSession session) {
-                    try {
-                        session.capture(captureBuilder.build(), captureListener, null);
-                    } catch (final CameraAccessException e) {
-                        Log.e(TAG, " exception occurred while accessing " + currentCameraId, e);
-                    }
-                }
-
-                @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-                }
-            }
-            , null);
-        } catch (final CameraAccessException e) {
-            Log.e(TAG, " exception occurred while taking picture from " + currentCameraId, e);
-            capturingListener.onCapturingFailed();
+        @Override
+        public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
+            super.onCaptureProgressed(session, request, partialResult);
+            Log.i(TAG, "Capture processed!");
         }
-    }
+    };
 
+    /**
+     * Gets byte array of captured image and registers the image (i.e. optional saving, onCaptureDone invocation)
+     */
+    private final ImageReader.OnImageAvailableListener onImageAvailableListener = (ImageReader imReader) -> {
+        final Image image = imReader.acquireLatestImage();
+        final ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+        final byte[] bytes = new byte[buffer.capacity()];
+        buffer.get(bytes);
+        registerImage(bytes);
+        image.close();
+    };
 
+    /**
+     * registers image i.e. optionally saves image (controlled by doSaveImage) and reports calls listener back with image as byte arrays
+     * @param bytes
+     */
     private void registerImage(final byte[] bytes) {
         annotatedImage.setTimeTaken(System.currentTimeMillis());
-
 
         String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
                 + File.separator
@@ -351,6 +268,109 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         capturingListener.onCaptureDone(image);
     }
 
+
+    /**
+     * Returns the range of the Automatic Exposure of the camera
+     * @return the range of the Automatic Exposure of the camera
+     */
+    private Range<Integer> getRange() {
+        try {
+            CameraCharacteristics chars = manager.getCameraCharacteristics(cameraDevice.getId());
+            Range<Integer>[] ranges = chars.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+            Range<Integer> result = null;
+            for (Range<Integer> range : ranges) {
+                int upper = range.getUpper();
+                // 10 - min range upper for my needs
+                if (upper >= 10) {
+                    if (result == null || upper < result.getUpper().intValue()) {
+                        result = range;
+                    }
+                }
+            }
+            if (result == null) {
+                result = ranges[0];
+            }
+            return result;
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Triggers image capturing after a delay of 500 ms, to prevent too dark images. Needs to be called after startCapturing() i.e. after getting a listener to report to
+     */
+    @Override
+    public void capture(){
+        if(!cameraClosed) {
+            Log.i(TAG, "Taking new image");
+            new Handler().postDelayed(this::takePicture, 500);
+        }
+        else{
+            capturingListener.onCapturingFailed();
+        }
+    }
+
+    /**
+     * Configures the camera exposure mode and exposure time (fixed). Notes JPEG orientation of image in case robot looks backwards. Takes a single image.
+     */
+    private void takePicture() {
+        try {
+            if (null == cameraDevice) {
+                Log.e(TAG, "cameraDevice is null");
+                return;
+            }
+            final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraDevice.getId());
+            Size[] jpegSizes = null;
+            StreamConfigurationMap streamConfigurationMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            if (streamConfigurationMap != null) {
+                jpegSizes = streamConfigurationMap.getOutputSizes(ImageFormat.JPEG);
+            }
+            final boolean jpegSizesNotEmpty = jpegSizes != null && 0 < jpegSizes.length;
+            int width = jpegSizesNotEmpty ? jpegSizes[0].getWidth() : 640;
+            int height = jpegSizesNotEmpty ? jpegSizes[0].getHeight() : 480;
+            final ImageReader reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1);
+            final List<Surface> outputSurfaces = new ArrayList<>();
+            outputSurfaces.add(reader.getSurface());
+            final CaptureRequest.Builder captureBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.addTarget(reader.getSurface());
+
+            captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_OFF);
+            captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_OFF);
+            captureBuilder.set(CaptureRequest.SENSOR_EXPOSURE_TIME, 100000000L);
+
+            if(annotatedImage.getPitch() <= 90){
+                captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 0);
+            }
+            else{
+                captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 180);
+            }
+            captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,getRange());
+            reader.setOnImageAvailableListener(onImageAvailableListener, null);
+            cameraDevice.createCaptureSession(outputSurfaces, new CameraCaptureSession.StateCallback() {
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession session) {
+                    try {
+                        session.capture(captureBuilder.build(), captureListener, null);
+                    } catch (final CameraAccessException e) {
+                        Log.e(TAG, " exception occurred while accessing " + currentCameraId, e);
+                    }
+                }
+
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                }
+            }
+            , null);
+        } catch (final CameraAccessException e) {
+            Log.e(TAG, " exception occurred while taking picture from " + currentCameraId, e);
+            capturingListener.onCapturingFailed();
+        }
+    }
+
+    /**
+     * closes the camera if not already
+     */
     @Override
     public void endCapturing(){
         if(!cameraClosed){
@@ -358,7 +378,9 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
         }
     }
 
-
+    /**
+     * Closes the camera and the image reader
+     */
     private void closeCamera() {
         Log.d(TAG, "closing camera " + cameraDevice.getId());
         if (null != cameraDevice && !cameraClosed) {
@@ -370,24 +392,5 @@ public class PictureCapturingServiceImpl extends APictureCapturingService {
             imageReader = null;
         }
     }
-
-//    @Override
-//    public void startBackgroundThread() {
-//        mBackgroundThread = new HandlerThread("Camera Background");
-//        mBackgroundThread.start();
-//        mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-//    }
-//
-//    @Override
-//    public void stopBackgroundThread() {
-//        mBackgroundThread.quitSafely();
-//        try {
-//            mBackgroundThread.join();
-//            mBackgroundThread = null;
-//            mBackgroundHandler = null;
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//    }
 
 }

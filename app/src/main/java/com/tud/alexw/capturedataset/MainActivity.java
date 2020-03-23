@@ -11,12 +11,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.segway.robot.sdk.base.bind.ServiceBinder;
 import com.segway.robot.sdk.locomotion.head.Head;
@@ -46,7 +43,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.CAMERA,
     };
-    private static final int MY_PERMISSIONS_REQUEST_ACCESS_CODE = 1;
+
 
     private ImageView imageView;
     private EditText inputPlaceLabel;
@@ -62,6 +59,11 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 
     private MoveHead moveHead;
 
+    /**
+     * Setup GUI and start capturing by opening camera.
+     * onHeadMovementDone and onCaptureDone callbacks trigger each other i.e. head turning and capturing alternates synchronously
+     * @param savedInstanceState saved state of the app
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,13 +85,18 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         inputBaseYaw = (EditText) findViewById(R.id.inputBaseYaw);
 
         pictureService = PictureCapturingServiceImpl.getInstance(this);
+
+        // for debug purpose enable/ disable image saving
         boolean saveImages = true;
         pictureService.setDoSaveImage(saveImages);
         if(!saveImages){
             findViewById(R.id.savingFlag).setVisibility(View.VISIBLE);
         }
+
+        //open camera
         pictureService.startCapturing(this, mAnnotatedImage);
 
+        // set intial head movements list
 //        int[] pitchValues = {   0,   0,   0,   0,  0,  0,  0, 35,  35,  35,  35, 35, 35, 35, 145, 145, 145, 145, 145, 174, 174, 174, 174, 174};
 //        int[] yawValues = {     0, -30, -60, -90, 90, 60, 30,  0, -30, -60, -90, 90, 60, 30,   0, -30, -60,  60,  30,   0, -30, -60,  60,  30};
 //        int[] pitchValues = {   0, 35, 145, 174};
@@ -101,6 +108,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         moveHead = new MoveHead(mHead, this, yawValues, pitchValues);
 
 
+        // trigger next (first) head movement and annotate image according to user inputs
         final Button captureButton = (Button) findViewById(R.id.CaptureBtn);
         captureButton.setOnClickListener(v -> {
             Log.d(TAG, "Button 'Capture' clicked");
@@ -113,6 +121,11 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         });
     }
 
+    /**
+     * annotate image accroding to head position and take an image. If image not taken after some time try again.
+     * @param yaw yaw value in degree
+     * @param pitch pitch value in degree
+     */
     @Override
     public void onHeadMovementDone(int yaw, int pitch) {
         Log.i(TAG, String.format("Head movement (%d, %d) done" , yaw, pitch));
@@ -129,6 +142,9 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         }, 2000);
     }
 
+    /**
+     * Log all movements done
+     */
     @Override
     public void onAllHeadMovementsDone(){
         Log.i(TAG, "No movements left! Capturing finished!");
@@ -148,6 +164,9 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         }
     }
 
+    /**
+     * retry capturing if it failed
+     */
     @Override
     public void onCapturingFailed(){
         Log.e(TAG, "Capturing failed!");
@@ -160,16 +179,16 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         if (!mHead.isBind()) {
             mHead.bindService(getApplicationContext(), mServiceBindListenerHead);
         }
-//        pictureService.startBackgroundThread();
-
     }
 
     @Override
     protected void onPause() {
-//        pictureService.stopBackgroundThread();
         super.onPause();
     }
 
+    /**
+     * On stop call from android: Unbind head service and end capturing i.e. close camera
+     */
     @Override
     protected void onStop() {
         mHead.unbindService();
@@ -177,7 +196,9 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         super.onStop();
         finish();
     }
-
+    /**
+     * On destroy app call from android: Unbind head service and end capturing i.e. close camera
+     */
     @Override
     protected void onDestroy() {
         mHead.unbindService();
@@ -185,12 +206,20 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         super.onDestroy();
     }
 
+    /**
+     * Prevent orientation change
+     * @param newConfig
+     */
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         // ignore orientation/keyboard change
         super.onConfigurationChanged(newConfig);
     }
 
+    /**
+     * Display last captured image in a memory friendly way
+     * @param pictureData
+     */
     private void showImage(byte[] pictureData) {
         // Get the dimensions of the View
         int targetW = imageView.getWidth();
@@ -215,10 +244,17 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         imageView.setImageBitmap(bitmap);
     }
 
+    private static final int PERMISSIONS_REQUEST_ACCESS_CODE = 1;
+    /**
+     * Check permissions if android (M) asks during runtime
+     * @param requestCode
+     * @param permissions
+     * @param grantResults
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_ACCESS_CODE: {
+            case PERMISSIONS_REQUEST_ACCESS_CODE: {
                 if (!(grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                     checkPermissions();
@@ -241,10 +277,13 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
         }
         if (!neededPermissions.isEmpty()) {
             requestPermissions(neededPermissions.toArray(new String[]{}),
-                    MY_PERMISSIONS_REQUEST_ACCESS_CODE);
+                    PERMISSIONS_REQUEST_ACCESS_CODE);
         }
     }
 
+    /**
+     * Bind the Head of robot SDK and logs Mode of Head
+     */
     private ServiceBinder.BindStateListener mServiceBindListenerHead = new ServiceBinder.BindStateListener() {
         @Override
         public void onBind() {

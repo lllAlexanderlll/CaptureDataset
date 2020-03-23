@@ -18,6 +18,9 @@ import java.util.regex.Pattern;
 import androidx.annotation.NonNull;
 
 
+/**
+ * stores image information as Bitmap object and corresponding annotation info. De- and encodes filenames for images.
+ */
 public class AnnotatedImage {
 
     private static final String TAG = "AnnotatedImage";
@@ -29,6 +32,9 @@ public class AnnotatedImage {
     String roomLabel;
     String parentPath;
 
+    /**
+     * Creates an empty annotationImage with dummy annotations and nulls
+     */
     public AnnotatedImage(){
         this.bitmap = null;
         this.parentPath = null;
@@ -40,6 +46,10 @@ public class AnnotatedImage {
         this.pitch = -1;
     }
 
+    /**
+     * Decodes a given annotated image filename into annotations of the calling object
+     * @param path filename or path to filename
+     */
     public void decodeFilename(String path){
         int lastSlashIndex = path.lastIndexOf('/');
         this.parentPath = path.substring(0, lastSlashIndex - 1);
@@ -60,6 +70,9 @@ public class AnnotatedImage {
         }
     }
 
+    /**
+     * Transforms local pitch and yaw coordinates relative to the robots head to global coordinates
+     */
     private void transformToGlobalCoordinates(){
         // convert local pitch and yaw to global measurements
 
@@ -75,6 +88,10 @@ public class AnnotatedImage {
         yaw %= 360;
     }
 
+    /**
+     * Encodes annotations into image filename
+     * @return the annotated image filename
+     */
     public String encodeFilename(){
         transformToGlobalCoordinates();
         if(timeTaken == -1 || yaw == -1 || roomLabel == null){
@@ -88,6 +105,10 @@ public class AnnotatedImage {
         }
     }
 
+    /**
+     * Loads a bitmap from a given path
+     * @param path the path
+     */
     public void load(String path){
         decodeFilename(path);
 
@@ -103,6 +124,10 @@ public class AnnotatedImage {
 
     }
 
+    /**
+     * Saves the image and annotations to external public storage
+     * @param context
+     */
     public void saveImageToExternalStorage(Context context) {
         filename = encodeFilename();
 

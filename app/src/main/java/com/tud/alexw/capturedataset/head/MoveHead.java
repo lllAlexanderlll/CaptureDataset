@@ -5,10 +5,8 @@ import android.util.Log;
 import com.segway.robot.sdk.locomotion.head.Head;
 import com.tud.alexw.capturedataset.Utils;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 import static com.tud.alexw.capturedataset.Utils.degreeToRad;
 import static com.tud.alexw.capturedataset.Utils.isClose;
@@ -22,6 +20,13 @@ public class MoveHead {
     private Head mHead;
     private int counter = 0;
 
+    /**
+     * Constructor. Creates new MoveHead object by specifying listener, robot SDK head object and setting intial head movement list by yaws and pitches (same size required).
+     * @param head reference to robot SDK head object
+     * @param listener reference to listener object
+     * @param yaws yaw values in degree. Values between -174 and 174 allowed
+     * @param pitches pitch values in degree. Values between -90 and 174 allowed
+     */
     public MoveHead(Head head, MoveHeadListener listener, int[] yaws, int[] pitches){
         mHead = head;
         moveHeadListener = listener;
@@ -30,6 +35,11 @@ public class MoveHead {
         addMoves(yaws, pitches);
     }
 
+    /**
+     * extent head movement lists with more head movements. Arrays must have same size.
+     * @param yaws yaw values in degree. Values between -174 and 174 allowed
+     * @param pitches pitch values in degree. Values between -90 and 174 allowed
+     */
     public void addMoves(int[] yaws, int[] pitches){
         if(yaws.length == pitches.length){
             for(int i = 0; i < yaws.length; i++){
@@ -39,16 +49,26 @@ public class MoveHead {
         }
     }
 
+    /**
+     * resets movement list i.e. points to first movement
+     */
     private void reset(){
         counter = 0;
     }
 
+    /**
+     * retry last movement i.e. point to previous movement and call next
+     */
     public void retry(){
         Log.i(TAG, "Retrying to move head");
         counter--;
         next();
     }
 
+    /**
+     * iterates to next head pose, waits until head moved into this position and informs listener with onHeadMovementDone
+     * if no next head move position in list reset head pose and look upwards to ease user interaction and informs listener with onAllHeadMovementsDone
+     */
     public void next(){
         if(counter < yaws.size()){
             moveHead(yaws.get(counter), pitches.get(counter));
@@ -63,6 +83,11 @@ public class MoveHead {
         }
     }
 
+    /**
+     * Moves the head to the given pitch and yaw value (both in degree) and waits until there (blocking).
+     * @param yaw_deg yaw value in degree. Values between -174 and 174 allowed
+     * @param pitch_deg pitch value in degree. Values between -90 and 174 allowed
+     */
     private void moveHead(int yaw_deg, int pitch_deg){
         if(yaw_deg > 144 || yaw_deg < -144 || pitch_deg < 0 || pitch_deg > 174){
             Log.e(TAG, String.format("Yaw: %d not in [-144, 144] or pitch: %d not in [0, 174]", yaw_deg, pitch_deg));

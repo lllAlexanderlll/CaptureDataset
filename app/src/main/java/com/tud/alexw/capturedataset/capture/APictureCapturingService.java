@@ -41,7 +41,7 @@ public abstract class APictureCapturingService {
     boolean doSaveImage;
 
     /***
-     * constructor.
+     * constructor. Controls image saving behaviour
      *
      * @param activity the activity used to get display manager and the application context
      */
@@ -75,6 +75,4 @@ public abstract class APictureCapturingService {
         this.doSaveImage = doSaveImage;
     }
 
-//    public abstract void startBackgroundThread();
-//    public abstract void stopBackgroundThread();
 }
