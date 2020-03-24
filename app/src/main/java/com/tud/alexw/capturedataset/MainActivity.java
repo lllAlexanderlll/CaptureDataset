@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity implements PictureCapturingL
 //        pictureService.capture();
     }
     /**
-     * Displaying the pictures taken.
+     * Displays the picture taken and triggers next head movement
      */
     @Override
     public void onCaptureDone(byte[] pictureData) {

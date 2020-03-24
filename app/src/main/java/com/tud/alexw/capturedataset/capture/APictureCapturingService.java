@@ -68,9 +68,20 @@ public abstract class APictureCapturingService {
      */
     public abstract void startCapturing(final PictureCapturingListener listener, AnnotatedImage annotatedImage);
 
+    /**
+     * Ends picture capturing process
+     */
     public abstract void endCapturing();
+
+    /**
+     * Captures a single image
+     */
     public abstract void capture();
 
+    /**
+     * Controls whether image is to save or not
+     * @param doSaveImage indicates if images are to be saved
+     */
     public void setDoSaveImage(boolean doSaveImage) {
         this.doSaveImage = doSaveImage;
     }
