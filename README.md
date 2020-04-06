@@ -1,5 +1,5 @@
 # CaptureDataset
-This app implements the environment capturing process with Loomos HD camera (Segway Robotics Loomo) in the context of the term paper "Visual Place Recognition to Support Indoor Localisation" TODO: LINK
+This app implements the environment capturing process with Loomos HD camera (Segway Robotics Loomo) in the context of the term paper "Visual Place Recognition to Support Indoor Localisation" https://github.com/lllAlexanderlll/VisualPlaceRecognition
 
 ## Instructions
 Place the robot within a place and enter the place label, the x coordinate value of the local coordinate system (X), the y coordinate value of the local coordinate system (Y) and optionally a yaw angle value to calculate the global view direction (yaw).
